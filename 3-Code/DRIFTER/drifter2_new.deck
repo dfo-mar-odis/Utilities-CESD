@@ -1,0 +1,48 @@
+
+track <- scan("oradrft.dat",what=list(0,0,0,0,0,0,0,""))
+drgid <- track[[2]]
+tracklat <- ((track[[3]]/200000)-90)
+tracklong <- ((track[[4]]/200000)-180)
+map <- matrix(scan("passgm.ref"),ncol=3,byrow=T)
+long <- map[,1]
+lat <- map[,2]
+pen <- map[,3]
+require(lattice)
+latmin <- min(na.rm = T,tracklat)
+latmax <- max(na.rm = T,tracklat)
+longmin <- min(na.rm = T,tracklong)
+longmax <- max(na.rm = T,tracklong)
+latmin <- latmin - 0.005
+latmax <- latmax + 0.005
+longmin <- longmin - 0.005
+longmax <- longmax + 0.005
+latdeg=latmax-latmin
+latunits=(7.256*latdeg)/(0.71*5.216)
+units=longmax-latunits
+if(units > longmin)longdeg=longmax-longmin
+if(units > longmin)longunits=(5.216*longdeg)/(1.41*7.256)
+if(units > longmin)units=latmin+longunits
+if(units > longmin)latmax=units
+if(units < longmin)longmin=units
+postscript(file="Rplot1.ps",horizontal=F,width=7.5,height=10)
+require(lattice)
+
+drgidf <- as.factor(drgid)
+xyplot(tracklat~tracklong,groups=drgidf,type="l",xlab="Longitude",ylab="Latitude",
+xlim=c(longmin,longmax),ylim=c(latmin,latmax),
+panel = function(x,y,subscripts, groups){
+panel.xyplot(x,y)
+lpolygon(long,lat,density=-1,angle=45,border=T,col=6,err=-1)})
+dev.off()
+
+postscript(file="Rplot2.ps",horizontal=F,width=7.5,height=10)
+xyplot(tracklat~tracklong | drgidf,type="l",xlab="Longitude",ylab="Latitude",
+xlim=c(longmin,longmax),ylim=c(latmin,latmax),
+groups=drgidf,
+strip = function(...) strip.default(..., strip.names=F, style=1),
+panel = function(x,y,subscripts, groups){
+panel.xyplot(x,y)
+lpolygon(long,lat,density=-1,angle=45,border=T,col=6,err=-1)})
+dev.off()
+q()
+R CMD BATCH drifter2_new.deck

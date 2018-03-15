@@ -1,0 +1,45 @@
+
+track <- scan("oradrft.dat",what=list(0,0,0,0,0,0,0,"",0))
+drgid <- track[[2]]
+tracklat <- ((track[[3]]/200000)-90)
+tracklong <- ((track[[4]]/200000)-180)
+map <- matrix(scan("passgm.ref"),ncol=3,byrow=T)
+long <- map[,1]
+lat <- map[,2]
+pen <- map[,3]
+latmin <- min(na.rm = T,tracklat)
+latmax <- max(na.rm = T,tracklat)
+longmin <- min(na.rm = T,tracklong)
+longmax <- max(na.rm = T,tracklong)
+latmin <- latmin - 0.005
+latmax <- latmax + 0.005
+longmin <- longmin - 0.005
+longmax <- longmax + 0.005
+latdeg=latmax-latmin
+latunits=(7.256*latdeg)/(0.71*5.216)
+units=longmax-latunits
+if(units > longmin)longdeg=longmax-longmin
+if(units > longmin)longunits=(5.216*longdeg)/(1.41*7.256)
+if(units > longmin)units=latmin+longunits
+if(units > longmin)latmax=units
+if(units < longmin)longmin=units
+wmf.graph(file="Deployall301.wmf",width=11,height=7.5,color=F,pointsize=24)
+grpdrg <- unique(drgid)
+for(i in 1:length(grpdrg)){
+tracklon1<-c(rep(0,length(tracklong)))
+tracklat1<-c(rep(0,length(tracklat)))
+tracklon1<-tracklong[drgid==grpdrg[i]]
+tracklat1<-tracklat[drgid==grpdrg[i]]
+plot(tracklon1,tracklat1,type='l',xlim=c(longmin,longmax),
+ylim=c(latmin,latmax),xlab="Longitude",ylab="Latitude",pin=par(pin=c(7.256,5.216)))
+points(tracklon1[1],tracklat1[1],pch=16);
+par(new=T,xaxs="d",yaxs="d")}
+polygon(long,lat,density=100,angle=0,border=T,col=6)
+par(new=T,xaxs="d",yaxs="d")
+plot(long,lat,type="l",xlab=" ",ylab=" ",axes=F) 
+par(new=T,xaxs="d")
+title(main="Deployment 301")
+box()
+frame()
+q()
+

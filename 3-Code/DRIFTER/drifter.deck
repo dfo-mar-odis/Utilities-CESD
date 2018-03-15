@@ -1,0 +1,53 @@
+
+    track <- matrix(scan("cast331.dat3"),ncol=12,byrow=T)
+    drgid <- track[,2]                               
+    hour <- track[,6]
+    tracklat <- (track[,9])                               
+    tracklong <- (track[,10]*(-1.0))                                 
+    count <- seq(tracklat) 
+
+      map <- matrix(scan("passgm.ref"),ncol=3,byrow=T) 
+
+    long <- map[,1]
+    lat <- map[,2]
+    latmin <- min(na.rm = T,tracklat)
+    latmax <- max(na.rm = T,tracklat)
+    longmin <- min(na.rm = T,tracklong)
+    longmax <- max(na.rm = T,tracklong)
+    latmin <- latmin - 0.005
+    latmax <- latmax + 0.005
+    longmin <- longmin - 0.005
+    longmax <- longmax + 0.005
+    latdeg=latmax-latmin
+    latunits=(7.256*latdeg)/(0.71*5.216)
+    units=longmax-latunits
+    if(units > longmin)longdeg=longmax-longmin
+    if(units > longmin)longunits=(5.216*longdeg)/(1.41*7.256)
+    if(units > longmin)units=latmin+longunits
+    if(units > longmin)latmax=units
+    if(units < longmin)longmin=units
+    pdf("Rplota331.pdf", height = 10.5, width = 7.5,pointsize=10)
+#   postscript(file="Rplota331.ps",horizontal=T,width=7.5,height=10)
+    require(lattice)
+    plot(tracklong,tracklat,type='l',col="red",xlim=c(longmin,longmax),
+    ylim=c(latmin,latmax),xlab="Longitude",ylab="Latitude")
+    title(main="Hourly Locations for Deploy 331")
+    polygon(long,lat,density=-1,border=T,col="grey")
+    points(tracklong[1],tracklat[1],col="red",pch=19)
+    text(tracklong,tracklat,hour,cex=.7)
+    dev.off()
+    pdf("Rplotb331.pdf", height = 10.5, width = 7.5,pointsize=10)
+#   postscript(file="Rplotb331.ps",horizontal=F,width=7.2,height=9)
+    plot(tracklong,tracklat,type='l',xlim=c(longmin,longmax),
+    ylim=c(latmin,latmax),xlab="",ylab="")
+    title(main="Deploy 331")
+#
+    for (i in seq(along=tracklong))
+    arrows(tracklong[i],tracklat[i],tracklong[i+1],tracklat[i+1],length=.12,
+    angle=30,code=2)
+    polygon(long,lat,density=-1,border=T,col="grey")
+    points(tracklong[1],tracklat[1],col="red",pch=19)
+    q()
+
+
+      map <- matrix(scan("passgm.ref"),ncol=3,byrow=T) 

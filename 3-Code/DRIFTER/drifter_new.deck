@@ -1,0 +1,37 @@
+
+    track <- scan("18090615.txt",sep=",",what=list(0,0,0,0,0,0,0,0))
+    gooddata <- track[[7]]
+    tracklat <- ((track[[5]]/200000)-90)[gooddata == 1]
+    tracklong <- ((track[[6]]/200000)-180)[gooddata == 1]
+    map <- matrix(scan("/home/losierr/mergemesh2/work/passgm_reduce.dat"),ncol=2,byrow=T)
+    long <- map[,1]
+    lat <- map[,2]
+    latmin <- min(na.rm = T,tracklat)
+    latmax <- max(na.rm = T,tracklat)
+    longmin <- min(na.rm = T,tracklong)
+    longmax <- max(na.rm = T,tracklong)
+    latmin <- latmin - 0.005
+    latmax <- latmax + 0.005
+    longmin <- longmin - 0.005
+    longmax <- longmax + 0.005
+    latdeg=latmax-latmin
+    latunits=(7.256*latdeg)/(0.71*5.216)
+    units=longmax-latunits
+    if(units > longmin)longdeg=longmax-longmin
+    if(units > longmin)longunits=(5.216*longdeg)/(1.41*7.256)
+    if(units > longmin)units=latmin+longunits
+    if(units > longmin)latmax=units
+    if(units < longmin)longmin=units
+    #postscript(horizontal=T)
+    plot(tracklong,tracklat,type='l',xlim=c(longmin,longmax),
+    ylim=c(latmin,latmax),xlab="Longitude",ylab="Latitude")
+    par(new=T)
+    title(main="18090615.txt")
+    polygon(long,lat,density=0,border=T,col=6,err=-1)
+    par(new=T)
+    plot(tracklong,tracklat,type='l',xlim=c(longmin,longmax),
+    ylim=c(latmin,latmax),xlab="",ylab="")
+    for (i in seq(along=tracklong))
+    arrows(tracklong[i],tracklat[i],tracklong[i+1],tracklat[i+1],length=.1,angle=30,code=2)
+    q()
+    
