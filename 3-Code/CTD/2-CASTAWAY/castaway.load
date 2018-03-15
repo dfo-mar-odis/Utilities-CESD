@@ -1,0 +1,30 @@
+drop table castaway;
+create table castaway
+(deploy number (6),sdate date, latitude number (9,5),longitude number (9,5),depth number (7,3),
+temperature number (6,2),salinity number (7,4),density number (8,5),area);
+quit;
+" > castawayload.sql
+sqlplus losierr/For5tat5@ptran @castawayload.sql
+echo "
+-- Loading intensity or backscatter data info into oracle database                       
+LOAD DATA
+INFILE castaway.dat
+-- INFILE SPECIFIES THE DATA TO BE LOADED
+APPEND INTO TABLE castaway      
+(deploy        POSITION(83:87) INTEGER EXTERNAL,
+ sdate         POSITION(01:19) date 'MM DD YYYY hh24 mi ss',
+ cdate         POSITION(01:19) date 'MM DD YYYY',
+ latitude      POSITION(21:28) DECIMAL EXTERNAL,
+ longitude     POSITION(32:39) DECIMAL EXTERNAL,
+ depth         POSITION(42:48) DECIMAL EXTERNAL,
+ temperature   POSITION(52:58) DECIMAL EXTERNAL,
+ salinity      POSITION(62:70) DECIMAL EXTERNAL,
+ density       POSITION(72:80) DECIMAL EXTERNAL)
+ ">castdata.ctl
+echo "*** Workaround transferring data to db78 for loading into Oracle***"
+scp castdata.ctl 142.2.12.23:/home/losierr
+scp rtranintorback.dat 142.2.12.23:/home/losierr
+ssh 142.2.12.23 "(PATH=/usr/local/bin:/usr/ucb:$HOME/bin:/usr/bin/X11:/sbin:/u01/app/oracle/product/11.2.0/bin:.;
+export LD_LIBRARY_PATH=/u01/app/oracle/product/11.2.0/lib/;
+export ORACLE_HOME=/u01/app/oracle/product/11.2.0;
+sqlldr losierr/For5tat5@ptran castdata.ctl,castdata.log,castdata.bad)"
