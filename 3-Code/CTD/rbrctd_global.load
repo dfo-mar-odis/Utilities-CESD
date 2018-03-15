@@ -1,0 +1,1406 @@
+#!/bin/bash
+echo "============================================================================================== "
+echo " ______    ______   ______    _____   ________   ______     _          _____        _       ______"
+echo "|  __  \  |  __  \ |  __  \  / ____) |___  ___| |  ___ \   | |        / ___ \      / \     |  ___ \ "
+echo "| (__) /  | (__) / | (__) / | |          | |    | |   \ \  | |       | |   | |    / . \    | |   \ \ "
+echo "|  __ \   |  __ <  |  __ \  | |          | |    | |    | | | |       | |   | |   / / \ \   | |    | | "
+echo "| |  \ \  | (__) \ | |  \ \ | |____      | |    | |___/ /  | |_____  | |___| |  / /___\ \  | |___/ / "
+echo "|_|   \_\ |______/ |_|   \_\ \_____)     |_|    |______/   |_______|  \_____/  /_/     \_\ |______/ "
+echo "                                                                                                  "
+echo "================================================================================================= " 
+
+echo " You are running a script designed for SABS RBR   Data. It is"
+echo " extremely format sensitive therefore any loading of data should "
+echo " be plotted and checked. Data is loaded in TABLES sabs_osdinf, "
+echo " sabs_osdhyd,sabs_mesdhyd and Prince. There are provisions to simplyfy "
+echo " repeatative sampling stations ie: Jacks plankton Station. Script will"
+echo " also allow adhock entries into the sabs_osdinf and sabs_osdhyd Tables."
+echo "    PICK one of the following choices."
+echo " "
+echo "   1: Load SABS RBR data into appropriate databases"
+echo "   2: Process a distinct RBR Cast "
+echo "   3: Do time series plots of a particular year"
+echo "   4: Do time series plots of several years (Not implemented)"
+echo " "
+read choices
+if [ "$choices" = "1" ]
+then
+echo " "
+echo "......................................................."
+echo "     This Selection can delete existing deployments.   "
+echo "     Please be Careful when loading new deployments    "                             
+echo "......................................................."
+ls *.txt
+ls *.TXT
+echo " "
+echo "            Enter filename for loading? \c"
+read filen
+echo $filen > rfmt
+rbrctd_rfmt < rfmt 
+echo "Enter return to continue"
+read return
+vi rbrlog.txt
+echo "Which cast number do you wish to load?"
+read cast
+awk '{if ($11 == cast) printf("%3.0f%3.0f%5.0f%4.0f%3.0f%9.3f%7.2f%8.4f%8.4f%6.1f%4.0f\n",$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)}' cast=$cast rbrlog.txt >rbrlog2.txt
+echo rbrlog2.txt > rfmt
+rbr_interp < rfmt
+more rbrint.new 
+echo "  You must respond to date question for quality control."
+echo " "
+echo "  Enter day month year hour minutes for processing ex. 31 7 1998 13 47? \c"
+read iday imonth iyear ihr imin
+case $ihr in
+  0) ihr=00;;
+  1) ihr=01;;
+  2) ihr=02;;
+  3) ihr=03;;
+  4) ihr=04;;
+  5) ihr=05;;
+  6) ihr=06;;
+  7) ihr=07;;
+  8) ihr=08;;
+  9) ihr=09;;
+esac
+case $imin in
+  0) imin=00;;
+  1) imin=01;;
+  2) imin=02;;
+  3) imin=03;;
+  4) imin=04;;
+  5) imin=05;;
+  6) imin=06;;
+  7) imin=07;;
+  8) imin=08;;
+  9) imin=09;;
+esac
+case $iday in
+  1) iday=01;;
+  2) iday=02;;
+  3) iday=03;;
+  4) iday=04;;
+  5) iday=05;;
+  6) iday=06;;
+  7) iday=07;;
+  8) iday=08;;
+  9) iday=09;;
+esac
+case $imonth in
+  1) imon2=01;;
+  2) imon2=02;;
+  3) imon2=03;;
+  4) imon2=04;;
+  5) imon2=05;;
+  6) imon2=06;;
+  7) imon2=07;;
+  8) imon2=08;;
+  9) imon2=09;;
+  01) imon2=01;;
+  02) imon2=02;;
+  03) imon2=03;;
+  04) imon2=04;;
+  05) imon2=05;;
+  06) imon2=06;;
+  07) imon2=07;;
+  08) imon2=08;;
+  09) imon2=09;;
+  10) imon2=10;;
+  11) imon2=11;;
+  12) imon2=12;;
+esac
+case $imonth in
+  1) imon3="Jan";;
+  2) imon3="Feb";;
+  3) imon3="Mar";;
+  4) imon3="Apr";;
+  5) imon3="May";;
+  6) imon3="Jun";;
+  7) imon3="Jul";;
+  8) imon3="Aug";;
+  9) imon3="Sep";;
+  01) imon3="Jan";;
+  02) imon3="Feb";;
+  03) imon3="Mar";;
+  04) imon3="Apr";;
+  05) imon3="May";;
+  06) imon3="Jun";;
+  07) imon3="Jul";;
+  08) imon3="Aug";;
+  09) imon3="Sep";;
+  10) imon3="Oct";;
+  11) imon3="Nov";;
+  12) imon3="Dec";;
+esac
+fi
+echo ""
+echo " Please Enter the station ID?"
+echo "           Some standard stations in use are"
+echo " "
+echo "      bc= Brandy Cove (17)    p5= Prince 5             gp= Gardner Point"
+echo "      dh= Deadmans (15)       p6= Prince 6             hi= Hardwood Island"
+echo "      lk= LimeKiln (3)        p7 or bb = Bocabec       mi= Ministers island"
+echo "      pb= Pass Bay (25)       bo= Bocabec Bay (Jacks)  ts= Tongue Shoal "
+echo "      wv= Wolves (16)         cb= Cunningham Beach     xx=manual entry?" 
+echo "      46= Station 46          cc= Cummings Cove   "                       
+echo "      57= Station 57          da= Davidson Head   "                       
+echo ""
+read station
+case $station in
+ "xx") proj="Manual Entry";
+area="Best Guess";
+lat=45.00000;
+long=67.00000;
+database="osd";
+title="Manual Entry $iday $imon3 $iyear";;
+ "bo") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.1576;
+long=67.02458;
+database="osd";
+title="Bocabec $iday $imon3 $iyear";;
+ "cb") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.13682;
+long=67.02548;
+database="osd";
+title="Cunninghan Beach $iday $imon3 $iyear";;
+ "cc") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=44.93858;
+long=66.99553;
+database="osd";
+title="Cummings Cove $iday $imon3 $iyear";;
+ "gp") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=44.99258;
+long=67.00252;
+database="osd";
+title="Gardner Point $iday $imon3 $iyear";;
+ "hi") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.1271;
+long=67.01665;
+database="osd";
+title="Hardwood Island $iday $imon3 $iyear";;
+ "mi") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.09155;
+long=67.03628;
+database="osd";
+title="Ministers Island $iday $imon3 $iyear";;
+ "da") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.01188;
+long=66.99363;
+database="osd";
+title="Davidson Head $iday $imon3 $iyear";;
+ "ts") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.07172;
+long=67.00783;
+database="osd";
+title="Tongue Shoal $iday $imon3 $iyear";;
+ "lk") proj="Jennifers Phytoplankton Station";
+istn=3;
+database="mesd";
+title="LimeKiln Station 3 $iday $imon3 $iyear";;
+ "dh") proj="Jennifers Phytoplankton Station";
+istn=15;
+database="mesd";
+title="Deadmans Station 15 $iday $imon3 $iyear";;
+ "wv") proj="Jennifers Phytoplankton Station";
+istn=16;
+database="mesd";
+title="Wolves Station 16 $iday $imon3 $iyear";;
+ "bc") proj="Jennifers Phytoplankton Station";
+istn=17;
+database="mesd";
+title="Brandy Cove Station 17 $iday $imon3 $iyear";;
+ "pb") proj="Jennifers Phytoplankton Station";
+istn=25;
+database="mesd";
+title="Pass Bay Station 25 $iday $imon3 $iyear";;
+ "aq") proj="Jennifers Phytoplankton Station";
+istn=51;
+database="mesd";
+title="Aquanet Station 51 $iday $imon3 $iyear";;
+ "46") proj="Jennifers NERACOOS Station";
+istn=46;
+database="mesd";
+title="BIO Cyst Station 46 $iday $imon3 $iyear";;
+ "57") proj="Jennifers NERACOOS Station";
+istn=57;
+database="mesd";
+title="BIO Cyst Station 57 $iday $imon3 $iyear";;
+ "p5") proj="Prince Station";
+istn=5;
+database="prince";
+title="Prince 5 $iday $imon3 $iyear";;
+ "p6") proj="Prince Station";             
+istn=6;
+database="prince";
+title="Prince 6 $iday $imon3 $iyear";;              
+ "bb") proj="Prince Station";              
+istn=7;
+database="prince";
+title="Prince 7 $iday $imon3 $iyear";;              
+ "p7") proj="Prince Station";              
+istn=7;
+database="prince";
+title="Prince 7 $iday $imon3 $iyear";;              
+esac
+if [ $choices = 2 ] && [ "$database" == "osd" ]
+then
+echo " "
+echo "  What year are you working in? \c"
+echo " "
+read iyear
+echo "
+set linesize 180;
+set pagesize 79;
+select deploy,station,to_char(sdate,'dd mm yyyy') dates_dmy from sabs_osdinf where station='$station'
+and year=$iyear group by deploy,station,to_char(sdate,'dd mm yyyy') order by deploy;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "  Enter day and month processing ex. 31 7? \c"
+echo " "
+read iday imon2
+echo "  Enter deployment number? \c"
+echo " "
+read deploy
+case $iday in
+  1) iday=01;;
+  2) iday=02;;
+  3) iday=03;;
+  4) iday=04;;
+  5) iday=05;;
+  6) iday=06;;
+  7) iday=07;;
+  8) iday=08;;
+  9) iday=09;;
+esac
+case $imon2 in
+  1) imon2=01;;
+  2) imon2=02;;
+  3) imon2=03;;
+  4) imon2=04;;
+  5) imon2=05;;
+  6) imon2=06;;
+  7) imon2=07;;
+  8) imon2=08;;
+  9) imon2=09;;
+  01) imon2=01;;
+  02) imon2=02;;
+  03) imon2=03;;
+  04) imon2=04;;
+  05) imon2=05;;
+  06) imon2=06;;
+  07) imon2=07;;
+  08) imon2=08;;
+  09) imon2=09;;
+  10) imon2=10;;
+  11) imon2=11;;
+  12) imon2=12;;
+esac
+case $imon2 in
+  1) imon3="Jan";;
+  2) imon3="Feb";;
+  3) imon3="Mar";;
+  4) imon3="Apr";;
+  5) imon3="May";;
+  6) imon3="Jun";;
+  7) imon3="Jul";;
+  8) imon3="Aug";;
+  9) imon3="Sep";;
+  01) imon3="Jan";;
+  02) imon3="Feb";;
+  03) imon3="Mar";;
+  04) imon3="Apr";;
+  05) imon3="May";;
+  06) imon3="Jun";;
+  07) imon3="Jul";;
+  08) imon3="Aug";;
+  09) imon3="Sep";;
+  10) imon3="Oct";;
+  11) imon3="Nov";;
+  12) imon3="Dec";;
+esac
+title="$title $iday $imon3 $iyear"
+fi
+if [ $choices = 2 ] && [ "$database" == "mesd" ]
+then
+echo " "
+echo "            Enter month and year for processing ex. 7 1998? \c"
+echo " "
+read imonth iyear
+echo "
+set linesize 180;
+set pagesize 79;
+select station,to_char(sdate,'dd mm yyyy') dates_dmy from sabs_mesdhyd where station=$istn
+and year=$iyear and month=$imonth group by station,sdate order by sdate;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "  Enter day for processing? \c"
+echo " "
+read iday
+case $iday in
+  1) iday=01;;
+  2) iday=02;;
+  3) iday=03;;
+  4) iday=04;;
+  5) iday=05;;
+  6) iday=06;;
+  7) iday=07;;
+  8) iday=08;;
+  9) iday=09;;
+esac
+case $imonth in
+  1) imon2=01;;
+  2) imon2=02;;
+  3) imon2=03;;
+  4) imon2=04;;
+  5) imon2=05;;
+  6) imon2=06;;
+  7) imon2=07;;
+  8) imon2=08;;
+  9) imon2=09;;
+  01) imon2=01;;
+  02) imon2=02;;
+  03) imon2=03;;
+  04) imon2=04;;
+  05) imon2=05;;
+  06) imon2=06;;
+  07) imon2=07;;
+  08) imon2=08;;
+  09) imon2=09;;
+  10) imon2=10;;
+  11) imon2=11;;
+  12) imon2=12;;
+esac
+case $imon2 in
+  1) imon3="Jan";;
+  2) imon3="Feb";;
+  3) imon3="Mar";;
+  4) imon3="Apr";;
+  5) imon3="May";;
+  6) imon3="Jun";;
+  7) imon3="Jul";;
+  8) imon3="Aug";;
+  9) imon3="Sep";;
+  01) imon3="Jan";;
+  02) imon3="Feb";;
+  03) imon3="Mar";;
+  04) imon3="Apr";;
+  05) imon3="May";;
+  06) imon3="Jun";;
+  07) imon3="Jul";;
+  08) imon3="Aug";;
+  09) imon3="Sep";;
+  10) imon3="Oct";;
+  11) imon3="Nov";;
+  12) imon3="Dec";;
+esac
+title="$title $iday $imon3 $iyear"
+fi
+if [ $choices = 2 ] && [ "$database" == "prince" ]
+then
+echo " "
+echo "            Enter month and year for processing ex. 7 1998? \c"
+echo " "
+read imonth iyear
+echo "
+set linesize 180;
+set pagesize 79;
+select station,to_char(sdate,'dd mm yyyy') dates_dmy from prince where station=$istn
+and year=$iyear and month=$imonth group by station,sdate order by sdate;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "  Enter day for processing? \c"
+echo " "
+read iday
+case $iday in
+  1) iday=01;;
+  2) iday=02;;
+  3) iday=03;;
+  4) iday=04;;
+  5) iday=05;;
+  6) iday=06;;
+  7) iday=07;;
+  8) iday=08;;
+  9) iday=09;;
+esac
+case $imonth in
+  1) imon2=01;;
+  2) imon2=02;;
+  3) imon2=03;;
+  4) imon2=04;;
+  5) imon2=05;;
+  6) imon2=06;;
+  7) imon2=07;;
+  8) imon2=08;;
+  9) imon2=09;;
+  01) imon2=01;;
+  02) imon2=02;;
+  03) imon2=03;;
+  04) imon2=04;;
+  05) imon2=05;;
+  06) imon2=06;;
+  07) imon2=07;;
+  08) imon2=08;;
+  09) imon2=09;;
+  10) imon2=10;;
+  11) imon2=11;;
+  12) imon2=12;;
+esac
+case $imon2 in
+  1) imon3="Jan";;
+  2) imon3="Feb";;
+  3) imon3="Mar";;
+  4) imon3="Apr";;
+  5) imon3="May";;
+  6) imon3="Jun";;
+  7) imon3="Jul";;
+  8) imon3="Aug";;
+  9) imon3="Sep";;
+  01) imon3="Jan";;
+  02) imon3="Feb";;
+  03) imon3="Mar";;
+  04) imon3="Apr";;
+  05) imon3="May";;
+  06) imon3="Jun";;
+  07) imon3="Jul";;
+  08) imon3="Aug";;
+  09) imon3="Sep";;
+  10) imon3="Oct";;
+  11) imon3="Nov";;
+  12) imon3="Dec";;
+esac
+title="$title $iday $imon3 $iyear"
+fi
+if [ $choices = 3 ] && [ "$database" == "mesd" ]
+then
+echo " "
+echo "            Enter year for processing ex.1998? \c"
+echo " "
+read iyear
+fi
+if [ "$choices" = "1" ] && [ "$database" == "osd" ]
+then
+echo "
+select max(deploy) from sabs_osdinf;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+rm xxx.sql
+echo ""
+echo "  Enter New Deployment number now \c"
+echo ""
+read deploy
+echo $deploy >> rfmt
+echo "
+select * from sabs_osdinf where deploy=$deploy; 
+select count(*) from sabs_osdhyd where deploy=$deploy;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo " "
+echo "          From the ORACLE selection above, check deployment info"
+echo "      to see whether or not this deployment has been previously used."
+echo " "
+echo "WARNING   WARNING   WARNING   WARNING   WARNING   WARNING"
+echo " "
+echo "DELETION OF PREVIOUSLY ENTERED CTD $deploy will occur"
+echo " "
+echo "Do you want to continue y/n \c"
+read reply
+if [ "$reply" = "Y" -o "$reply" = "y" ]
+then
+echo "
+delete from sabs_osdhyd where deploy=$deploy;
+delete from sabs_osdinf where deploy=$deploy;
+exit;
+">delete.sql
+sqlplus losierr/rmtj01 @delete.sql
+fi
+echo "                   "
+echo " "
+echo "                 NOW Loading RBR   data from $filen \c"; date
+echo "
+--  Loading RBR    data info for $filen into ORACLE
+LOAD DATA
+-- REQUIRED AT THE BEGINNING OF THE CONTROL FILE
+INFILE rbrint.new      
+APPEND INTO TABLE sabs_osdhyd       
+(deploy        POSITION(12:12) INTEGER EXTERNAL,
+ sdepth        POSITION(20:27) decimal external,               
+ temp          POSITION(30:34) decimal external,
+ sal           POSITION(36:42) DECIMAL EXTERNAL,
+ density       POSITION(44:50) DECIMAL EXTERNAL,
+ oxymll        POSITION(12:12) DECIMAL EXTERNAL,
+ oxymgl        POSITION(12:12) DECIMAL EXTERNAL,
+ oxypsat       POSITION(52:56) DECIMAL EXTERNAL,
+ oxysatmgl     POSITION(12:12) DECIMAL EXTERNAL,
+ turbftu       POSITION(12:12) DECIMAL EXTERNAL,
+ wetlabs       POSITION(12:12) DECIMAL EXTERNAL,
+ transx        POSITION(12:12) DECIMAL EXTERNAL,
+ par           POSITION(12:12) DECIMAL EXTERNAL)
+ ">ctddat.ctl
+sqlldr losierr/rmtj01 ctddat.ctl,ctddat.log,ctddat.bad
+if [ -r ctddat.bad ]
+then
+  echo "Records rejected : " 'cat ctddat.bad | wc -1'
+fi
+echo "update sabs_osdhyd set deploy=$deploy where deploy is null; " > xxx.sql
+echo "update sabs_osdhyd set oxypsat=null where oxypsat = 0 and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set oxymll=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set oxymgl=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set oxysatmgl=null where oxypsat is null " >> xxx.sql
+echo "and deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set turbftu=null where turbftu  > 50 and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set Wetlabs=null where Wetlabs > 50 and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "Select deploy,sdepth,oxymgl,oxypsat from sabs_osdhyd where " > xxx.sql
+echo "sdepth < 5 and deploy=$deploy"  >> xxx.sql
+echo "order by deploy,sdepth; "  >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo " "
+echo "OXYGEN DATA FINAL EDIT... DO YOU WANT TO VOID THESE READINGS?"
+read void  
+if [ "$void" = "y" -o "$void" = "Y" ]
+then
+echo "update sabs_osdhyd set oxypsat=null where " > xxx.sql
+echo "deploy=$deploy; " >> xxx.sql
+echo "update sabs_osdhyd set oxymll=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy; " >> xxx.sql
+echo "update sabs_osdhyd set oxymgl=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy; " >> xxx.sql
+echo "update sabs_osdhyd set oxysatmgl=null where oxypsat is null " >> xxx.sql
+echo "and deploy=$deploy; " >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+fi
+echo $deploy $imonth $iday $iyear $ihr $imin   0  > rfmtinf.dat
+awk '{printf("%5.0f%3.0f%3.0f%5.0f%3.0f%3.0f%3.0f",$1,$2,$3,$4,$5,$6,$7)}' rfmtinf.dat > rfmtinf2.dat
+echo "
+load data
+infile rfmtinf2.dat
+append into table sabs_osdinf
+(deploy        position(1:5)  integer external,
+ sdate         position(6:25) date 'MM DD YYYY hh24 mi ss',
+ month         position(6:8) integer external,
+ day           position(9:11) integer external,
+ year          position(12:16) integer external,
+ hour          position(17:19) integer external,
+ minute        position(20:22) integer external) 
+">ctdinf.ctl
+sqlldr losierr/rmtj01 ctdinf.ctl ctdinf.log ctdinf.bad
+more ctdinf.log
+echo ""
+transectnum=0
+if [ "$station" = "xx" ]
+then
+echo ""
+echo "  Enter the lat and long of the CTD station \c"
+echo ""
+read lat long
+echo "  Enter the geographic area of this deployment. \c"
+echo ""
+read area
+echo "  Enter the project with which this deployment was associated. \c"
+echo ""
+read proj
+echo " "
+echo "  Enter the transect ID associated with this cast? "
+echo "     If so, please enter the number now. "
+echo "        If not, please enter 0.             "
+echo ""
+read transectnum
+fi
+if [ "$station" = "xx" ]
+then
+echo "  Enter plot Title now?"
+read title
+title="$title $iday $imon3 $iyear"
+echo " "
+echo "  Enter the station coding now?\c"
+echo " "
+read station
+fi
+echo "update sabs_osdinf set station='$station' where deploy=$deploy;" > xxx.sql
+echo "update sabs_osdinf set station=null where station='0';" >> xxx.sql
+echo "update sabs_osdinf set latitude=$lat where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set longitude=$long where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set confile='RBRCTD' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set hexfile='RBRCTD' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set project='$proj' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set area='$area' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set tranid=$transectnum where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set tranid=null where deploy=$deploy and tranid=0;" >> xxx.sql
+echo "drop view maxdepth;" >> xxx.sql
+echo "create view maxdepth as select deploy,max(sdepth) mdepth from sabs_osdhyd where deploy=$deploy group by deploy;" >> xxx.sql
+echo "update sabs_osdinf set depth=(select mdepth+1 from maxdepth) where deploy=$deploy;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+fi
+if [ "$choices" = "1" -o "$choices" = "2" ] && [ "$database" == "osd" ]
+then
+echo ""
+echo "set pages 0;" > xxx.sql
+echo "set linesize 180;" >> xxx.sql
+echo "set newpage 1;" >> xxx.sql
+echo "set feedback off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set wrap off;" >> xxx.sql
+echo "set trim off;" >> xxx.sql
+echo "set show off;" >> xxx.sql
+echo "set verify off;" >> xxx.sql
+echo "set termout off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set null NA;" >> xxx.sql
+echo "column deploy format 99999;" >> xxx.sql 
+echo "column year format 9999;" >> xxx.sql 
+echo "column month format 99;" >> xxx.sql 
+echo "column day format 90;" >> xxx.sql 
+echo "column hour format 90;" >> xxx.sql 
+echo "column minute format 90;" >> xxx.sql 
+echo "column sdepth format 999.0;" >> xxx.sql 
+echo "column temp format 99.990;" >> xxx.sql 
+echo "column density format 999.990;" >> xxx.sql 
+echo "column oxymll format 99.990;" >> xxx.sql 
+echo "column oxymgl format 99.990;" >> xxx.sql 
+echo "column oxypsat format 999.0;" >> xxx.sql 
+echo "column oxysatmgl format 999.990;" >> xxx.sql 
+echo "column turbftu format 99.990;" >> xxx.sql 
+echo "column Wetlabs format 99.90;" >> xxx.sql 
+echo "column PAR format 99999;" >> xxx.sql 
+echo "column sal format 99.990;" >> xxx.sql 
+echo "spool ctd.txt" >> xxx.sql
+echo "select sabs_osdhyd.deploy,year,month,day,hour, " >> xxx.sql
+echo "minute,sdepth,temp,sal,density,oxymll, " >> xxx.sql
+echo "oxymgl,oxypsat,oxysatmgl,turbftu,Wetlabs,PAR " >> xxx.sql
+echo "from sabs_osdhyd,sabs_osdinf " >> xxx.sql
+echo "where sabs_osdhyd.deploy=$deploy and " >> xxx.sql
+echo "sabs_osdinf.deploy=sabs_osdhyd.deploy order by sdepth; " >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "
+x <- matrix(scan(\"ctd.txt\"),ncol=17,byrow=T)
+MMM <- x[,3]
+DD <- x[,4]
+YYYY <- x[,2]
+HH <- x[,5]
+MM <- x[,6]
+DepS <- (x[,7]*-1.0)
+T068 <- x[,8]
+Sal00 <- x[,9]
+Sigma <- x[,10]
+WetStar  <- x[,16]
+OxML  <- x[,11]
+OxMg<- x[,12]
+OxPS<- x[,13]
+OxsatMg<- x[,14]
+Turbidity  <- x[,15]
+PAR  <- x[,17]
+SS  <- c(rep(0,length(DD)))
+dmy <- paste(DD,MMM,YYYY,sep=\"/\")
+HMS <- paste(HH,MM,SS,sep=\":\")
+jpeg(filename=\"stn$station$imon3$iday$iyear.jpeg\",width=768,height=1024,quality=100,pointsize=10,bg=\"white\")
+layout(matrix(1:4,2,2,byrow=T))
+par(mar=c(3,3,4,2)+0.1)
+par(oma=c(4,3,3,3))
+#computing x and y axis limits
+#initialize the variable x1 and y1
+x1 <- 0
+y1 <- 0
+#insert coordinates for no data plot options
+x1[1] <- 0
+y1[1] <- 0
+x1[2] <- 1
+y1[2] <- 1
+
+try(plot(T068,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Temperature\",ylab=\"Depth\"),TRUE)
+
+try(plot(Sal00,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Salinity\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+try(plot(OxPS,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Ox%Sat\",ylab=\"Depth\"),TRUE)
+
+try(plot(Sigma,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"SigmaT\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+title(main=\"$title\",outer=T,line=-1.5,cex.main=2)
+
+dev.off()
+" > sabsctd.deck
+R CMD BATCH sabsctd.deck
+gimp stn$station$imon3$iday$iyear.jpeg
+echo " "
+echo "                   You have a printjob on the network lineprinter."
+echo "                   Check printout for errors before continuing."
+echo "   "
+fi
+
+if [ $choices = 1 ] && [ "$database" == "mesd" ]
+then
+vi rbrint.new 
+rm uindx.sql
+rm mesd.bad
+echo "delete from sabs_mesdhyd where station is null;"  > xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "
+--  Loading mesd data info for $filen into ORACLE
+LOAD DATA
+-- REQUIRED AT THE BEGINNING OF THE CONTROL FILE
+INFILE rbrint.new 
+APPEND INTO TABLE SABS_MESDHYD     
+(station       POSITION(12:12) INTEGER EXTERNAL,
+ sdate         POSITION(02:18) date 'DD MM YYYY  hh24 mi',
+ month         POSITION(04:06) integer external,
+ day           POSITION(02:03) integer external,
+ year          POSITION(08:11) integer external,
+ hour          POSITION(14:15) integer external,
+ minute        POSITION(17:18) integer external,
+ temp          POSITION(30:34) DECIMAL EXTERNAL,
+ depth         POSITION(20:27) decimal external,
+ Wetlabs       POSITION(12:12) DECIMAL EXTERNAL,
+ oxymll        POSITION(12:12) DECIMAL EXTERNAL,
+ oxymgl        POSITION(12:12) DECIMAL EXTERNAL,
+ oxypsat       POSITION(52:56) DECIMAL EXTERNAL,
+ oxysatmgl     POSITION(12:12) DECIMAL EXTERNAL,
+ turbftu       POSITION(12:12) DECIMAL EXTERNAL,
+ par           POSITION(12:12) decimal external,
+ sal           POSITION(36:42) DECIMAL EXTERNAL,
+ density       POSITION(44:50) DECIMAL EXTERNAL,
+ Transx        POSITION(12:12) DECIMAL EXTERNAL)
+ ">mesd.ctl
+sqlldr losierr/rmtj01@sabs mesd.ctl,mesd.log,mesd.bad
+rm mesd.txt
+echo "set pagesize 100;"  > xxx.sql
+echo "select * from sabs_mesdhyd where station is null and depth <= 2;"  >> xxx.sql
+echo "update sabs_mesdhyd set station=$istn where station is null; " >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+rm rbrint.new 
+fi
+
+if [ "$choices" = "1" -o "$choices" = "2" ] && [ "$database" == "mesd" ]
+then
+echo "set pages 0;" > xxx.sql
+echo "set linesize 180;" >> xxx.sql
+echo "set newpage 1;" >> xxx.sql
+echo "set feedback off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set wrap off;" >> xxx.sql
+echo "set trim off;" >> xxx.sql
+echo "set show off;" >> xxx.sql
+echo "set verify off;" >> xxx.sql
+echo "set termout off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set null NA;" >> xxx.sql
+echo "column station format 99;" >> xxx.sql
+echo "column year format 9999;" >> xxx.sql
+echo "column month format 99;" >> xxx.sql
+echo "column day format 90;" >> xxx.sql
+echo "column hour format 90;" >> xxx.sql
+echo "column minute format 90;" >> xxx.sql
+echo "column depth format 999.0;" >> xxx.sql
+echo "column temp format 99.990;" >> xxx.sql
+echo "column density format 999.990;" >> xxx.sql
+echo "column oxymll format 99.990;" >> xxx.sql
+echo "column oxymgl format 99.990;" >> xxx.sql
+echo "column oxypsat format 999.0;" >> xxx.sql
+echo "column oxysatmgl format 999.990;" >> xxx.sql
+echo "column turbftu format 999.990;" >> xxx.sql
+echo "column Wetlabs format 99.90;" >> xxx.sql
+echo "column Par format 9999.90;" >> xxx.sql
+echo "column salinity format 99.990;" >> xxx.sql
+echo "spool mesd.txt" >> xxx.sql
+echo "select station,year,month,day,nvl(hour,0),nvl(minute,0),depth,temp,sal,density,oxymll,
+oxymgl,oxypsat,oxysatmgl,turbftu,Wetlabs,Par from sabs_mesdhyd " >> xxx.sql
+echo "where station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday order by depth;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "
+x <- matrix(scan(\"mesd.txt\"),ncol=17,byrow=T)
+MMM <- x[,3]
+DD <- x[,4]
+YYYY <- x[,2]
+HH <- x[,5]
+MM <- x[,6]
+DepS <- (x[,7]*-1.0)
+T068 <- x[,8]
+Sal00 <- x[,9]
+Sigma <- x[,10]
+WetStar  <- x[,16]
+Par  <- x[,17]
+OxML  <- x[,11]
+OxMg<- x[,12]
+OxPS<- x[,13]
+OxsatMg<- x[,14]
+Turbidity  <- x[,15]
+SS  <- c(rep(0,length(DD)))
+dmy <- paste(DD,MMM,YYYY,sep=\"/\")
+# concatenate my DMY together with a / separator to set into Splus format
+HMS <- paste(HH,MM,SS,sep=\":\")
+# concatenate my HMS together with a : separator to set into Splus format
+#mydate <- chron(dmy,HMS,format=c(\"d/m/y\",\"h:m:s\"))
+# produce the vector mydate using the datetime function chron
+jpeg(filename=\"stn$istn$imon3$iday$iyear.jpeg\",width=768,height=1024,quality=100,pointsize=10,bg=\"white\")
+layout(matrix(1:4,2,2,byrow=T))
+par(mar=c(3,3,4,2)+0.1)
+par(oma=c(4,3,3,3))
+#computing x and y axis limits
+#initialize the variable x1 and y1
+x1 <- 0
+y1 <- 0
+#insert coordinates for no data plot options
+x1[1] <- 0
+y1[1] <- 0
+x1[2] <- 1
+y1[2] <- 1
+
+plot(T068,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Temperature\",ylab=\"Depth\")
+
+try(plot(Sal00,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Salinity\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+try(plot(OxPS,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Ox%Sat\",ylab=\"Depth\"),TRUE)
+
+try(plot(Sigma,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"SigmaT\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+title(main=\"$title\",outer=T,line=-1.5,cex.main=2)
+
+dev.off()
+" > mesd.deck
+R CMD BATCH mesd.deck
+gimp stn$istn$imon3$iday$iyear.jpeg
+fi
+if [ $choices = 3 ] && [ "$database" == "mesd" ]
+then
+echo "
+set pages 0;
+set linesize 180;
+set newpage 1;
+set feedback off;
+set heading off;
+set wrap off;
+set trim off;
+set show off;
+set verify off;
+set termout off;
+set heading off;
+set null NA;
+column depth format 999.0;
+column temp format 99.990;
+column density format 999.990;
+column oxymll format 99.990;
+column oxymgl format 99.990;
+column oxypsat format 999.0;
+column oxysatmgl format 999.990;
+column turbftu format 999.990;
+column Wetlabs format 999.90;
+column Par format 9999.90;
+column sal format 99.990;
+spool mesdyr.txt
+select station,year,month,day,depth,temp,sal,density,oxymll,oxymgl,oxypsat,
+oxysatmgl,turbftu,Wetlabs,Par from sabs_mesdhyd
+where station = $istn and year = $iyear
+order by year,month,day,depth;
+exit;
+" > mesd.sql
+sqlplus losierr/rmtj01 @mesd.sql
+echo "
+x <- matrix(scan(\"mesdyr.txt\"),ncol=15,byrow=T)
+MMM <- x[,3]
+DD <- x[,4]
+YYYY <- x[,2]
+DepS <- (x[,5]*-1.0)
+T068 <- x[,6]
+Sal00 <- x[,7]
+Sigma <- x[,8]
+oxypsat <- x[,11]
+turbidity <- x[,13]
+flouresence <- x[,14]
+Par <- x[,15]
+SS  <- c(rep(0,length(DD)))
+dmy <- paste(DD,MMM,YYYY,sep=\"/\")
+# concatenate my DMY together with a / separator to set into Splus format
+HMS <- paste(HH,MM,SS,sep=\":\")
+# concatenate my HMS together with a : separator to set into Splus format
+#mydate <- chron(dmy,HMS,format=c(\"d/m/y\",\"h:m:s\"))
+# produce the vector mydate using the datetime function chron
+jpeg(filename=\"stn$istn.jpeg\",width=768,height=1024,quality=100,pointsize=10,bg=\"white\")
+layout(matrix(1:4,2,2,byrow=T))
+par(mar=c(3,3,4,2)+0.1)
+par(oma=c(4,3,3,3))
+#computing x and y axis limits
+#initialize the variable x1 and y1
+x1 <- 0
+y1 <- 0
+#insert coordinates for no data plot options
+x1[1] <- 0
+y1[1] <- 0
+x1[2] <- 1
+y1[2] <- 1
+
+plot(T068,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Temperature\",ylab=\"Depth\")
+
+try(plot(Sal00,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Salinity\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+try(plot(OxPS,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Ox%Sat\",ylab=\"Depth\"),TRUE)
+
+try(plot(Sigma,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"SigmaT\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+title(main=\"$title\",outer=T,line=-1.5,cex.main=2)
+
+dev.off()
+" > mesd.deck
+R CMD BATCH mesd.deck
+#lp Rplots.ps
+gimp Rplots.ps
+fi
+
+if [ $choices = 3 ] && [ "$database" == "mesd" ]
+then
+for istn in 3 15 16 17 25 46 57
+do
+case $istn in
+  3) istn2="LimeKiln";;
+  15) istn2="Deadman";;
+  16) istn2="Wolves";;
+  17) istn2="Brandy Cove";;
+  25) istn2="Passamaquoddy Bay";;
+  46) istn2="Cyst Station 46  ";;
+  57) istn2="Cyst Station 57  ";;
+esac
+if [ "$istn" = "3" ]
+then
+echo "
+select station,sdate from sabs_mesdhyd where year=$iyear and
+month=$imonth and station=$istn group by station,sdate order by station,sdate;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo " "
+echo "   From the ORACLE selection above, note the date and day of month."
+echo "           A date display verifies previously loaded entries."
+echo "                    Enter day you want to view? \c"
+read iday
+fi
+echo "set pages 0;" > xxx.sql
+echo "set linesize 180;" >> xxx.sql
+echo "set newpage 1;" >> xxx.sql
+echo "set feedback off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set wrap off;" >> xxx.sql
+echo "set trim off;" >> xxx.sql
+echo "set show off;" >> xxx.sql
+echo "set verify off;" >> xxx.sql
+echo "set termout off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set null NA;" >> xxx.sql
+echo "column station format 99;" >> xxx.sql
+echo "column year format 9999;" >> xxx.sql
+echo "column month format 99;" >> xxx.sql
+echo "column day format 90;" >> xxx.sql
+echo "column hour format 90;" >> xxx.sql
+echo "column minute format 90;" >> xxx.sql
+echo "column depth format 999.0;" >> xxx.sql
+echo "column temp format 99.990;" >> xxx.sql
+echo "column density format 999.990;" >> xxx.sql
+echo "column oxymll format 99.990;" >> xxx.sql
+echo "column oxymgl format 99.990;" >> xxx.sql
+echo "column oxypsat format 999.0;" >> xxx.sql
+echo "column oxysatmgl format 999.990;" >> xxx.sql
+echo "column turbftu format 99.990;" >> xxx.sql
+echo "column Wetlabs format 99.90;" >> xxx.sql
+echo "column Par format 9999.90;" >> xxx.sql
+echo "column salinity format 99.990;" >> xxx.sql
+echo "spool mesd.txt" >> xxx.sql
+echo "select station,year,month,day,nvl(hour,0),nvl(minute,0),depth,temp,sal,density,oxymll,
+oxymgl,oxypsat,oxysatmgl,turbftu,Wetlabs,Par from sabs_mesdhyd " >> xxx.sql
+echo "where station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday order by depth;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "
+x <- matrix(scan(\"mesd.txt\"),ncol=17,byrow=T)
+MMM <- x[,3]
+DD <- x[,4]
+YYYY <- x[,2]
+HH <- x[,5]
+MM <- x[,6]
+DepS <- (x[,7]*-1.0)
+T068 <- x[,8]
+Sal00 <- x[,9]
+Sigma <- x[,10]
+WetStar  <- x[,16]
+Par  <- x[,17]
+OxML  <- x[,11]
+OxMg<- x[,12]
+OxPS<- x[,13]
+OxsatMg<- x[,14]
+Turbidity  <- x[,15]
+SS  <- c(rep(0,length(DD)))
+dmy <- paste(DD,MMM,YYYY,sep=\"/\")
+# concatenate my DMY together with a / separator to set into Splus format
+HMS <- paste(HH,MM,SS,sep=\":\")
+# concatenate my HMS together with a : separator to set into Splus format
+#mydate <- chron(dmy,HMS,format=c(\"d/m/y\",\"h:m:s\"))
+# produce the vector mydate using the datetime function chron
+jpeg(filename=\"stn$istn.jpeg\",width=768,height=1024,quality=100,pointsize=10,bg=\"white\")
+#postscript(file=\"stn$istn.ps\",horizontal=F,width=6.0,height=9.5)
+layout(matrix(1:4,2,2,byrow=T))
+par(mar=c(3,3,4,2)+0.1)
+par(oma=c(4,3,3,3))
+#computing x and y axis limits
+#initialize the variable x1 and y1
+x1 <- 0
+y1 <- 0
+#insert coordinates for no data plot options
+x1[1] <- 0
+y1[1] <- 0
+x1[2] <- 1
+y1[2] <- 1
+
+plot(T068,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Temperature\",ylab=\"Depth\")
+
+try(plot(Sal00,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Salinity\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+try(plot(OxPS,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Ox%Sat\",ylab=\"Depth\"),TRUE)
+
+try(plot(Sigma,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"SigmaT\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+title(main=\"Station $istn2 $iday/$imon2/$iyear \",outer=T,line=-1.5,cex.main=2)
+
+dev.off()
+" > prince.splus
+R CMD BATCH prince.splus
+#lp -or stn$istn.ps
+gimp stn$istn.ps
+
+echo " "
+echo "                   You have a printjob on the network lineprinter."
+echo "                   Check printout for errors before continuing."
+echo "   "
+done
+fi
+
+if [ $choices = 1 ] && [ "$database" == "prince" ]
+then
+echo "
+select station,max(sdate) from prince group by station;
+select station,sdate,depth,temp,sal from prince where year=$iyear and
+month=$imonth and depth<6 group by station,sdate,depth,temp,sal;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo " "
+echo "                From the ORACLE selection above, note the date and day of month."
+echo " The dates displayed indicates the last loaded entry and entries for the specified year and month."
+echo " "
+echo "WARNING   WARNING   WARNING   WARNING   WARNING   WARNING"
+echo " "
+echo "DELETION OF PREVIOUSLY ENTERED PRINCE $istn for year= $iyear and month= $imonth will occur"
+echo " "
+echo "Do you want to continue y/n \c"
+read reply
+if [ "$reply" = "Y" -o "$reply" = "y" ]
+then
+echo "
+delete from prince where to_char(sdate,'yyyy,mm,dd') = '$iyear,$imon2,$iday' and station= $istn;
+exit;
+">delete.sql
+sqlplus losierr/rmtj01 @delete.sql
+else
+echo " You have cancelled the Job."
+exit 1
+fi
+echo " "
+echo "                 NOW Loading Prince $istn $filen \c"; date
+rm prince.bad
+vi rbrint.new 
+echo "
+--  Loading prince data info for $filen into ORACLE
+LOAD DATA
+-- REQUIRED AT THE BEGINNING OF THE CONTROL FILE
+INFILE rbrint.new    
+APPEND INTO TABLE PRINCE
+(station       POSITION(12:12) INTEGER EXTERNAL,
+ sdate         POSITION(02:18) date 'DD MM YYYY  hh24 mi',
+ month         POSITION(04:06) integer external,
+ day           POSITION(02:03) integer external,
+ year          POSITION(08:11) integer external,
+ hour          POSITION(14:15) integer external,
+ minute        POSITION(17:18) integer external,
+ temp          POSITION(30:34) DECIMAL EXTERNAL,
+ depth         POSITION(20:27) decimal external,
+ Wetlabs       POSITION(12:12) DECIMAL EXTERNAL,
+ oxymll        POSITION(12:12) DECIMAL EXTERNAL,
+ oxymgl        POSITION(12:12) DECIMAL EXTERNAL,
+ oxypsat       POSITION(52:56) DECIMAL EXTERNAL,
+ oxysatmgl     POSITION(12:12) DECIMAL EXTERNAL,
+ turbftu       POSITION(12:12) DECIMAL EXTERNAL,
+ par           POSITION(12:12) decimal external,
+ sal           POSITION(36:42) DECIMAL EXTERNAL,
+ density       POSITION(44:50) DECIMAL EXTERNAL,
+ xmiss         POSITION(12:12) DECIMAL EXTERNAL)
+ ">prince.ctl
+sqlldr losierr/rmtj01 prince.ctl,prince.log,prince.bad
+if [ -r prince.bad ]
+then
+  echo "Records rejected : " 'cat prince.bad | wc -1'
+fi
+rm prince.txt
+echo "update prince set station=$istn where station is null; " > xxx.sql
+echo "update prince set oxypsat=null where oxypsat = 0 and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set oxymll=null where oxypsat is null and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set oxymgl=null where oxypsat is null and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set oxysatmgl=null where oxypsat is null and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set turbftu=null where turbftu  > 50 and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set Wetlabs=null where Wetlabs > 90 and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "Select station,sdate,depth,oxypsat from prince where " > xxx.sql
+echo "depth < 5 and year = $iyear and month = $imonth and day = $iday  "  >> xxx.sql
+echo "order by station,depth; "  >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo " "
+echo "OXYGEN DATA FINAL EDIT... DO YOU WANT TO VOID THESE READINGS?"
+read void
+if [ "$void" = "y" -o "$void" = "Y" ]
+then
+echo "update prince set oxypsat=null where " > xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set oxymll=null where oxypsat is null and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set oxymgl=null where oxypsat is null and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "update prince set oxysatmgl=null where oxypsat is null and " >> xxx.sql
+echo "station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+fi
+fi
+if [ "$choices" = "1" -o "$choices" = "2" ] && [ "$database" == "prince" ]
+then
+echo "set pages 0;" > xxx.sql
+echo "set linesize 180;" >> xxx.sql
+echo "set newpage 1;" >> xxx.sql
+echo "set feedback off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set wrap off;" >> xxx.sql
+echo "set trim off;" >> xxx.sql
+echo "set show off;" >> xxx.sql
+echo "set verify off;" >> xxx.sql
+echo "set termout off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set null NA;" >> xxx.sql
+echo "column station format 99;" >> xxx.sql
+echo "column year format 9999;" >> xxx.sql
+echo "column month format 99;" >> xxx.sql
+echo "column day format 90;" >> xxx.sql
+echo "column hour format 90;" >> xxx.sql
+echo "column minute format 90;" >> xxx.sql
+echo "column depth format 999.0;" >> xxx.sql
+echo "column temp format 99.990;" >> xxx.sql
+echo "column density format 999.990;" >> xxx.sql
+echo "column oxymll format 99.990;" >> xxx.sql
+echo "column oxymgl format 99.990;" >> xxx.sql
+echo "column oxypsat format 999.0;" >> xxx.sql
+echo "column oxysatmgl format 999.990;" >> xxx.sql
+echo "column turbftu format 99.990;" >> xxx.sql
+echo "column Wetlabs format 99.90;" >> xxx.sql
+echo "column Par format 9999.90;" >> xxx.sql
+echo "column salinity format 99.990;" >> xxx.sql
+echo "spool prince.txt" >> xxx.sql
+echo "select station,year,month,day,nvl(hour,0),nvl(minute,0),depth,temp,sal,density,oxymll,
+oxymgl,oxypsat,oxysatmgl,turbftu,Wetlabs,Par from prince " >> xxx.sql
+echo "where station = $istn and year = $iyear " >> xxx.sql
+echo "and month = $imonth and day = $iday order by depth;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "
+x <- matrix(scan(\"prince.txt\"),ncol=17,byrow=T)
+MMM <- x[,3]
+DD <- x[,4]
+YYYY <- x[,2]
+HH <- x[,5]
+MM <- x[,6]
+DepS <- (x[,7]*-1.0)
+T068 <- x[,8]
+Sal00 <- x[,9]
+Sigma <- x[,10]
+WetStar  <- x[,16]
+Par  <- x[,17]
+OxML  <- x[,11]
+OxMg<- x[,12]
+OxPS<- x[,13]
+OxsatMg<- x[,14]
+Turbidity  <- x[,15]
+SS  <- c(rep(0,length(DD)))
+dmy <- paste(DD,MMM,YYYY,sep=\"/\")
+# concatenate my DMY together with a / separator to set into Splus format
+HMS <- paste(HH,MM,SS,sep=\":\")
+# concatenate my HMS together with a : separator to set into Splus format
+#mydate <- chron(dmy,HMS,format=c(\"d/m/y\",\"h:m:s\"))
+# produce the vector mydate using the datetime function chron
+jpeg(filename=\"stn$station$imon3$iday$iyear.jpeg\",width=768,height=1024,quality=100,pointsize=10,bg=\"white\")
+layout(matrix(1:4,2,2,byrow=T))
+par(mar=c(3,3,4,2)+0.1)
+par(oma=c(4,3,3,3))
+#computing x and y axis limits
+#initialize the variable x1 and y1
+x1 <- 0
+y1 <- 0
+#insert coordinates for no data plot options
+x1[1] <- 0
+y1[1] <- 0
+x1[2] <- 1
+y1[2] <- 1
+
+plot(T068,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Temperature\",ylab=\"Depth\")
+
+try(plot(Sal00,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Salinity\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+try(plot(Sigma,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"SigmaT\",yaxt=\"n\",ylab=\"\"),TRUE)
+
+try(plot(OxPS,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(1.5,.5,0),cex.lab=1.3,
+xlab=\"Ox%Sat\",ylab=\"Depth\"),TRUE)
+
+title(main=\"Prince $istn $iday/$imon3/$iyear \",outer=T,line=-1.5,cex.main=2)
+
+dev.off()
+" > prince.splus
+R CMD BATCH prince.splus
+gimp stn$station$imon3$iday$iyear.jpeg
+echo " "
+echo "                   You have a printjob on the network lineprinter."
+echo "                   Check printout for errors before continuing."
+echo "   "
+fi
+if [ "$choices" = "3" ] && [ "$database" == "prince" ]
+then
+echo "
+set pages 0;
+set linesize 180;
+set newpage 1;
+set feedback off;
+set heading off;
+set wrap off;
+set trim off;
+set show off;
+set verify off;
+set termout off;
+set heading off;
+set null NA;
+column depth format 999.0;
+column temp format 99.990;
+column density format 999.990;
+column oxymll format 99.990;
+column oxymgl format 99.990;
+column oxypsat format 999.0;
+column oxysatmgl format 999.990;
+column turbftu format 999.990;
+column Wetlabs format 999.90;
+column Par format 9999.90;
+column sal format 99.990;
+spool princeyr.txt
+select station,year,month,day,depth,temp,sal,density,oxymll,oxymgl,oxypsat,
+oxysatmgl,turbftu,Wetlabs,Par from prince
+where station = $istn and year = $iyear
+order by year,month,day,depth;
+exit;
+" > princeyr.sql
+sqlplus losierr/rmtj01 @princeyr.sql
+echo "
+x <- matrix(scan(\"princeyr.txt\"),ncol=15,byrow=T)
+MMM <- x[,3]
+DD <- x[,4]
+YYYY <- x[,2]
+DepS <- (x[,5]*-1.0)
+T068 <- x[,6]
+Sal00 <- x[,7]
+Sigma <- x[,8]
+oxypsat <- x[,11]
+turbidity <- x[,13]
+flouresence <- x[,14]
+Par <- x[,15]
+ymd <- paste(YYYY,MMM,DD,sep=\"/\")
+SS  <- c(rep(0,length(DD)))
+HH  <- c(rep(0,length(DD)))
+MM  <- c(rep(0,length(DD)))
+HMS <- paste(HH,MM,SS,sep=\":\")
+mydate <- chron(ymd,HMS,format=c(\"y/m/d\",\"h:m:s\"))
+jpeg(filename=\"stn$istn.jpeg\",width=768,height=1024,quality=100,pointsize=10,bg=\"white\")
+# concatenate my DMY together with a / separator to set into Splus format
+# produce the vector mydate using the datetime function chron
+newdate <- as.factor(mydate)
+xyplot(DepS~T068 | newdate,type=\"p\",xlab=\"Temperature\",ylab=\"Depth\",
+strip = function(...) strip.default(..., style = 1))
+title(main=\"Prince $istn $iyear \")
+xyplot(DepS~Sal00 | newdate,type=\"p\",xlab=\"Salinity\",ylab=\"Depth\",
+strip = function(...) strip.default(..., style = 1))
+title(main=\"Prince $istn $iyear \")
+xyplot(DepS~Sigma | newdate,type=\"p\",xlab=\"Density\",ylab=\"Depth\",
+strip = function(...) strip.default(..., style = 1))
+title(main=\"Prince $istn $iyear \")
+xyplot(DepS~oxypsat | newdate,type=\"p\",xlab=\"Ox%Sat\",ylab=\"Depth\",
+strip = function(...) strip.default(..., style = 1))
+title(main=\"Prince $istn $iyear \")
+xyplot(DepS~turbidity | newdate,type=\"p\",xlab=\"turbidity\",ylab=\"Depth\",
+strip = function(...) strip.default(..., style = 1))
+title(main=\"Prince $istn $iyear \")
+xyplot(DepS~flouresence | newdate,type=\"p\",xlab=\"flouresence\",ylab=\"Depth\",
+strip = function(...) strip.default(..., style = 1))
+title(main=\"Prince $istn $iyear \")
+dev.off()
+" > princeyr.splus
+R CMD BATCH prince.splus
+gimp Rolots.ps
+fi

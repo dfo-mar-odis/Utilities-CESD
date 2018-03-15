@@ -1,0 +1,456 @@
+echo " You are running a script designed for SABS CTD25 Data. It is"
+echo " extremely format sensitive therefore any loading of data should "
+echo " be plotted and checked. Data is loaded in TABLES sabs_osdinf and "
+echo " sabs_osdhyd. There are provisions to simplyfy repeatative sampling"
+echo " stations ie: Jacks plankton Station"
+echo " This script is for the MESD CTD - serial # 0304."
+echo " This CTD has both transx and fluorometry."
+echo " "
+echo "    PICK one of the following choices."
+echo " "
+echo "   1: Rebuild and reload the CTD Oracle Tables"
+echo "   2: Load SABS CTD25 data into database"
+echo "   3: Process a distinct CTD25 Deployment only"
+echo " "
+read choices
+if [ "$choices" = "2" -o "$choices" = "3" ]
+then
+echo " "
+echo "......................................................."
+echo "     This Selection can delete existing deployments.   "
+echo "     Please be Careful when loading new deployments    "                             
+echo "......................................................."
+fi
+if [ "$choices" = "3" ]
+then
+echo " "
+echo "  What deployment do you wish to process? \c"
+echo " "
+read deploy 
+fi
+if [ "$choices" = "2" ]
+then
+ls *.ASC
+ls *.asc
+echo " "
+echo "            Enter filename for loading? \c"
+read filen 
+echo $filen > rfmt
+echo " "
+echo "            Note deployment date" 
+echo "            Hit q to exit the following display mode."
+echo " "
+more -n4 $filen
+echo " "
+echo "  You must respond to date question for quality control."
+echo " "
+echo "  Enter day month and year for processing ex. 31 7 1998? \c"
+read iday imonth iyear
+case $iday in
+  1) iday=01;;
+  2) iday=02;;
+  3) iday=03;;
+  4) iday=04;;
+  5) iday=05;;
+  6) iday=06;;
+  7) iday=07;;
+  8) iday=08;;
+  9) iday=09;;
+esac
+case $imonth in
+  1) imon2=01;;
+  2) imon2=02;;
+  3) imon2=03;;
+  4) imon2=04;;
+  5) imon2=05;;
+  6) imon2=06;;
+  7) imon2=07;;
+  8) imon2=08;;
+  9) imon2=09;;
+  10) imon2=10;;
+  11) imon2=11;;
+  12) imon2=12;;
+esac
+echo ""
+echo "
+select max(deploy) from sabs_osdinf;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+rm xxx.sql
+echo ""
+echo "  Enter Deployment number now \c"
+echo ""
+read deploy
+echo $deploy >> rfmt
+if [ "$choices" = "2" ]
+then
+echo "
+select * from sabs_osdinf where deploy=$deploy; 
+select count(*) from sabs_osdhyd where deploy=$deploy;
+exit;
+">xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo " "
+echo "          From the ORACLE selection above, check deployment info"
+echo "      to see whether or not this deployment has been entered already."
+echo " "
+echo "WARNING   WARNING   WARNING   WARNING   WARNING   WARNING"
+echo " "
+echo "DELETION OF PREVIOUSLY ENTERED CTD for deployment $deploy will occur"
+echo " "
+echo "Do you want to continue y/n \c"
+read reply
+if [ "$reply" = "Y" -o "$reply" = "y" ]
+then
+echo "
+delete from sabs_osdhyd where deploy=$deploy;
+delete from sabs_osdinf where deploy=$deploy;
+exit;
+">delete.sql
+sqlplus losierr/rmtj01 @delete.sql
+echo "                   "
+echo "              Down cast should be used but answer y for upcast"
+echo "               You normally should answer no."
+echo "               Do you want to Load the up cast y/n? \c"
+read updown
+echo $updown >> rfmt
+ctd_rfmt_mesd < rfmt
+else
+echo " You have cancelled the Job."
+exit 1
+fi
+fi
+if [ "$choices" = "2" ]
+then
+echo " "
+echo "                 NOW Loading CTD25 data from $filen \c"; date
+echo "
+--  Loading CTD25  data info for $filen into ORACLE
+LOAD DATA
+-- REQUIRED AT THE BEGINNING OF THE CONTROL FILE
+INFILE ctd_rfmt.dat    
+APPEND INTO TABLE sabs_osdhyd       
+(deploy        POSITION(1:5) INTEGER EXTERNAL,
+ sdepth        POSITION(26:31) decimal external,               
+ temp          POSITION(32:38) decimal external,
+ sal           POSITION(39:49) DECIMAL EXTERNAL,
+ density       POSITION(50:60) DECIMAL EXTERNAL,
+ oxymll        POSITION(61:71) DECIMAL EXTERNAL,
+ oxymgl        POSITION(72:82) DECIMAL EXTERNAL,
+ oxypsat       POSITION(83:93) DECIMAL EXTERNAL,
+ oxysatmgl     POSITION(94:104) DECIMAL EXTERNAL,
+ turbftu       POSITION(105:115) DECIMAL EXTERNAL,
+ wetlabs       POSITION(116:126) DECIMAL EXTERNAL,
+ transx        POSITION(138:148) DECIMAL EXTERNAL,
+ par           POSITION(127:137) DECIMAL EXTERNAL)
+ ">ctddat.ctl
+sqlldr losierr/rmtj01 ctddat.ctl,ctddat.log,ctddat.bad
+if [ -r ctddat.bad ]
+then
+  echo "Records rejected : " 'cat ctddat.bad | wc -1'
+fi
+fi
+rm ctd25.txt
+if [ "$choices" = "2" ]
+then
+echo "update sabs_osdhyd set oxypsat=null where oxypsat = 0 and " > xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set oxymll=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set oxymgl=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set oxysatmgl=null where oxypsat is null " >> xxx.sql
+echo "and deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set turbftu=null where turbftu  > 50 and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdhyd set Wetlabs=null where Wetlabs > 50 and " >> xxx.sql
+echo "deploy=$deploy;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+fi
+if [ "$choices" = "2" ]
+then
+echo "Select deploy,sdepth,oxymgl,oxypsat from sabs_osdhyd where " > xxx.sql
+echo "sdepth < 5 and deploy=$deploy"  >> xxx.sql
+echo "order by deploy,sdepth; "  >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo " "
+echo "OXYGEN DATA FINAL EDIT... DO YOU WANT TO VOID THESE READINGS?"
+read void  
+if [ "$void" = "y" -o "$void" = "Y" ]
+then
+echo "update sabs_osdhyd set oxypsat=null where " > xxx.sql
+echo "deploy=$deploy; " >> xxx.sql
+echo "update sabs_osdhyd set oxymll=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy; " >> xxx.sql
+echo "update sabs_osdhyd set oxymgl=null where oxypsat is null and " >> xxx.sql
+echo "deploy=$deploy; " >> xxx.sql
+echo "update sabs_osdhyd set oxysatmgl=null where oxypsat is null " >> xxx.sql
+echo "and deploy=$deploy; " >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+fi
+echo "
+load data
+infile ctdinf.dat
+append into table sabs_osdinf
+(deploy        position(1:5)  integer external,
+ sdate         position(6:25) date 'MM DD YYYY hh24 mi ss',
+ month         position(6:8) integer external,
+ day           position(9:11) integer external,
+ year          position(12:16) integer external,
+ hour          position(17:19) integer external,
+ minute        position(20:22) integer external) 
+">ctdinf.ctl
+sqlldr losierr/rmtj01 ctdinf.ctl ctdinf.log ctdinf.bad
+more ctdinf.log
+echo ""
+echo "  And now for some information about the CTD deployment."
+echo ""
+echo " Enter the station ID for this deployment? \c"
+echo "           Some standard stations in use are"
+echo " "
+echo "      bo=bocabec         cb=cunningham Beach   cc=cummings Cove"
+echo "      gp=gardner point   hi=hills island       mi=ministers island"
+echo "      da=davidson head   ts=tongue shoal"
+echo " Enter xx if you wish to do a manual entry?"
+echo ""
+read station
+case $station in
+ "bo") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.1576;
+long=67.02458;
+title="Bocabec $iday $imonth $iyear";
+transectnum=1;;
+ "cb") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.13682;
+long=67.02548;
+title="Cunninghan Beach $iday $imonth $iyear";
+transectnum=2;;
+ "cc") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=44.93858;
+long=66.99553;
+title="Cummings Cove $iday $imonth $iyear";
+transectnum=3;;
+ "gp") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=44.99258;
+long=67.00252;
+title="Gardner Point $iday $imonth $iyear";
+transectnum=4;;
+ "hi") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.1271; 
+long=67.01665;
+title="Hills Island $iday $imonth $iyear";
+transectnum=5;;
+ "mi") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.09155;
+long=67.03628;
+title="Ministers Island $iday $imonth $iyear";
+transectnum=6;;
+ "da") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.01188;
+long=66.99363;
+title="Davidson Head $iday $imonth $iyear";
+transectnum=7;;
+ "ts") proj="Jacks Sea Lice";
+area="Passamaquoddy / Bay of Fundy";
+lat=45.07172;
+long=67.00783;
+title="Tongue Shoal $iday $imonth $iyear";
+transectnum=8;;
+esac
+#echo "  Enter the depth of the CTD station \c"
+#echo ""
+#read depth
+if [ "$station" = "xx" ]
+then
+echo ""
+echo "  Enter the lat and long of the CTD station \c"
+echo ""
+read lat long
+fi
+echo "  Enter the con file used to process this data. \c"
+echo ""
+#read con
+con="304.con"
+echo "  Enter the hex file used to produce this data. \c"
+echo ""
+#read hex
+hex=$filen
+if [ "$station" = "xx" ]
+then
+echo "  Enter the project with which this deployment was associated. \c"
+echo ""
+read proj
+fi
+if [ "$station" = "xx" ]
+then
+echo "  Enter the geographic area of this deployment. \c"
+echo ""
+read area
+fi
+if [ "$station" = "xx" ]
+then
+echo "  Is there a transect ID associated with this cast? "
+echo "     If so, please enter the number now. "
+echo "        If not, please enter 0.             "
+echo ""
+read transectnum
+fi
+echo "update sabs_osdinf set station='$station' where deploy=$deploy;" > xxx.sql
+echo "update sabs_osdinf set station=null where station='0';" >> xxx.sql
+#echo "update sabs_osdinf set depth=$depth where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set latitude=$lat where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set longitude=$long where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set confile='$con' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set hexfile='$hex' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set project='$proj' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set area='$area' where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set tranid=$transectnum where deploy=$deploy;" >> xxx.sql
+echo "update sabs_osdinf set tranid=null where deploy=$deploy and tranid=0;" >> xxx.sql
+echo "drop view maxdepth;" >> xxx.sql
+echo "create view maxdepth as select deploy,max(sdepth) mdepth from sabs_osdhyd where deploy=$deploy group by deploy;" >> xxx.sql
+echo "update sabs_osdinf set depth=(select mdepth+1 from maxdepth) where deploy=$deploy;" >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+fi
+fi
+if [ "$choices" = "2" -o "$choices" = "3" ]
+then
+rm ps.out.*.ps
+#mv $filen /users/losierr/ctd25/backup
+echo ""
+if [ "$station" = "xx" ]
+then
+echo "  Do you want a title for your plot? y/n"
+read titleyn
+if [ "$titleyn" = "n" -o "$titleyn" = "N" ]
+then
+title="CTD Deployment $deploy"
+else
+echo ""
+echo "Enter title now."
+echo ""
+read title
+fi
+fi
+echo "set pages 0;" > xxx.sql
+echo "set linesize 180;" >> xxx.sql
+echo "set newpage 1;" >> xxx.sql
+echo "set feedback off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set wrap off;" >> xxx.sql
+echo "set trim off;" >> xxx.sql
+echo "set show off;" >> xxx.sql
+echo "set verify off;" >> xxx.sql
+echo "set termout off;" >> xxx.sql
+echo "set heading off;" >> xxx.sql
+echo "set null NA;" >> xxx.sql
+echo "column deploy format 99999;" >> xxx.sql 
+echo "column year format 9999;" >> xxx.sql 
+echo "column month format 99;" >> xxx.sql 
+echo "column day format 90;" >> xxx.sql 
+echo "column hour format 90;" >> xxx.sql 
+echo "column minute format 90;" >> xxx.sql 
+echo "column sdepth format 999.0;" >> xxx.sql 
+echo "column temp format 99.990;" >> xxx.sql 
+echo "column density format 999.990;" >> xxx.sql 
+echo "column oxymll format 99.990;" >> xxx.sql 
+echo "column oxymgl format 99.990;" >> xxx.sql 
+echo "column oxypsat format 999.0;" >> xxx.sql 
+echo "column oxysatmgl format 999.990;" >> xxx.sql 
+echo "column turbftu format 99.990;" >> xxx.sql 
+echo "column Wetlabs format 99.90;" >> xxx.sql 
+echo "column PAR format 99999;" >> xxx.sql 
+echo "column sal format 99.990;" >> xxx.sql 
+echo "spool ctd.txt" >> xxx.sql
+echo "select sabs_osdhyd.deploy,year,month,day,hour, " >> xxx.sql
+echo "minute,sdepth,temp,sal,density,oxymll, " >> xxx.sql
+echo "oxymgl,oxypsat,oxysatmgl,turbftu,Wetlabs,PAR " >> xxx.sql
+echo "from sabs_osdhyd,sabs_osdinf " >> xxx.sql
+echo "where sabs_osdhyd.deploy=$deploy and " >> xxx.sql
+echo "sabs_osdinf.deploy=sabs_osdhyd.deploy order by sdepth; " >> xxx.sql
+echo "exit;" >> xxx.sql
+sqlplus losierr/rmtj01 @xxx.sql
+echo "
+x <- matrix(scan(\"ctd.txt\"),ncol=17,byrow=T)
+MMM <- x[,3]
+DD <- x[,4]
+YYYY <- x[,2]
+HH <- x[,5]
+MM <- x[,6]
+DepS <- (x[,7]*-1.0)
+T068 <- x[,8]
+Sal00 <- x[,9]
+Sigma <- x[,10]
+WetStar  <- x[,16]
+OxML  <- x[,11]
+OxMg<- x[,12]
+OxPS<- x[,13]
+OxsatMg<- x[,14]
+Turbidity  <- x[,15]
+PAR  <- x[,17]
+SS  <- c(rep(0,length(DD)))
+dmy <- paste(DD,MMM,YYYY,sep=\"/\")
+HMS <- paste(HH,MM,SS,sep=\":\")
+postscript(horizontal=F,width=6.0,height=9.5)
+layout(matrix(1:9,3,3,byrow=T))
+par(mar=c(4,4,3,0))
+#computing x and y axis limits
+#initialize the variable x1 and y1
+x1 <- 0
+y1 <- 0
+#insert coordinates for no data plot options
+x1[1] <- 0
+y1[1] <- 0
+x1[2] <- 1
+y1[2] <- 1
+
+plot(T068,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"Temperature\",ylab=\"Depth\")
+
+plot(Sal00,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"Salinity\",yaxt=\"n\",ylab=\"\")
+
+plot(Sigma,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"SigmaT\",yaxt=\"n\",ylab=\"\")
+
+plot(Turbidity,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"Turbidity\",ylab=\"Depth\")
+
+plot(WetStar,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"WetStar\",yaxt=\"n\",ylab=\"\")
+
+plot(PAR,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"PAR\",yaxt=\"n\",ylab=\"\")
+
+plot(OxPS,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"Ox%Sat\",ylab=\"Depth\")
+
+plot(OxML,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"Ox/ml\",yaxt=\"n\",ylab=\"\")
+
+plot(OxMg,DepS,type=\"o\",pch=16,cex=.6,tcl=-.3,mgp=c(2,.5,0),cex.lab=1.3,
+xlab=\"Ox/Mg\",yaxt=\"n\",ylab=\"\")
+
+title(main=\"$title\",outer=T,line=-1.5,cex.main=2)
+
+dev.off()
+" > sabsctd.deck
+R CMD BATCH sabsctd.deck
+mv Rplots.ps ctd$deploy.ps
+lp ctd$deploy.ps
+echo " "
+echo "                   You have a printjob on the network lineprinter."
+echo "                   Check printout for errors before continuing."
+echo "   "
+fi
