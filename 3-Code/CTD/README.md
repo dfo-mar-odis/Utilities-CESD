@@ -8,3 +8,4 @@ Scripts in this folder were pulled from the COERS legacy Old sow server in Febru
 * **ctd_mesd.load2**:
 * **ctd.load**:
 * **rbrctd_global.load**:
+* **RScript_CASTAWAY_QC_v10.R**: Fred Page's QC script for new Castaway CTD data. ~4300 lines of code, needs to be cleaned up and streamlined.
