@@ -16,4 +16,8 @@ Folder structure:
 *	**3-Code**: folder for all scripts used in order to process the data. *i.e. QA/QC, data manipulation, reformatting, or deriving values*
 *	**4-Products** folder is to store all finished data products derived from the data found in the **Data** folder using the scripts in **Code** folder unless it was processed using a graphical method (not reproducible).
 	*	**1-Reports**: Store published documents/reports/papers here
+<<<<<<< HEAD
 	*	**2-OpenDataContent**: Content that will be published to one of the Open Data platforms goes here
+=======
+	*	**2-OpenData
+>>>>>>> 7bf1f093c34344f2326d53bebebd06aaf730c818
